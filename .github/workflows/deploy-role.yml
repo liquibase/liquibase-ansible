@@ -34,7 +34,7 @@ jobs:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           sed -i "s/liquibase_ver: .*/liquibase_ver: ${{ inputs.version }}/" defaults/main.yml
-          wget -O liquibase-${new_version}.tar.gz https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz
+          wget -O liquibase-${{ inputs.version }}.tar.gz https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz
           sha256=$(sha256sum liquibase-${{ inputs.version }}.tar.gz | awk '{ print $1 }')
           echo "SHA256: $sha256"
           echo "  '${new_version}': sha256:$sha256" >> defaults/main.yml
