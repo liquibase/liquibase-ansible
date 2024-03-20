@@ -37,8 +37,9 @@ jobs:
           wget -O liquibase-${{ inputs.version }}.tar.gz https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz
           sha256=$(sha256sum liquibase-${{ inputs.version }}.tar.gz | awk '{ print $1 }')
           echo "SHA256: $sha256"
-          echo "  '${new_version}': sha256:$sha256" >> defaults/main.yml
+          echo "  '${{ inputs.version }}': sha256:$sha256" >> defaults/main.yml
           cat defaults/main.yml
+          git add defaults/main.yml
           # Check if there are changes before committing
           if git diff-index --quiet HEAD --; then
             echo "No changes to commit."
