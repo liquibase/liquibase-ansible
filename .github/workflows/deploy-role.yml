@@ -46,4 +46,3 @@ jobs:
       - name: Ansible import
         run: |
           ansible-galaxy role import --token ${{ secrets.ANSIBLE_TOKEN }} --branch main --role-name liquibase liquibase liquibase-ansible
-
