@@ -1,5 +1,5 @@
 
-name: Deploy AWS infra and test the role
+name: Test the role
 on:
   pull_request:
     branches:
