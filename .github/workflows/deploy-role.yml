@@ -1,0 +1,54 @@
+name: Ansible Role Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Value from the version i.e 4.26.0"
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      version:
+        description: "Value from the version i.e 4.26.0"
+        type: string
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      LIQUIBASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "64099989+liquibot@users.noreply.github.com"
+          git config --local user.name "liquibot"
+
+      - name: Update main.yml
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          sed -i "s/liquibase_ver: .*/liquibase_ver: ${{ inputs.version }}/" defaults/main.yml
+          wget -O liquibase-${new_version}.tar.gz https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz
+          sha256=$(sha256sum liquibase-${{ inputs.version }}.tar.gz | awk '{ print $1 }')
+          echo "SHA256: $sha256"
+          echo "  '${new_version}': sha256:$sha256" >> defaults/main.yml
+          cat defaults/main.yml
+          # Check if there are changes before committing
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update liquibase.version to ${{ inputs.version }}"
+            git remote set-url origin https://liquibot:${{ secrets.BOT_TOKEN }}@github.com/liquibase/liquibase-ansible.git
+            #git push
+          fi
+
+      - name: Ansible import
+        run: |
+          ansible-galaxy role import --token ${{ secrets.ANSIBLE_TOKEN }} --branch main --role-name liquibase liquibase liquibase-ansible
+
