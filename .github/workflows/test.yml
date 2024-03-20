@@ -1,11 +1,12 @@
-name: Test liquibase-ansible role
+
+name: Deploy AWS infra and test the role
 on:
   pull_request:
     branches:
       - main
 
 jobs:
-  test:
+  test-ansible-role:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,4 +18,4 @@ jobs:
       - name: Deploy Playbook
         run: |
           ansible-galaxy install -r meta/requirements.yml
-          ansible-playbook --connection=local --inventory 127.0.0.1, $PWD/.github/playbook.yml
+          ansible-playbook --connection=local --inventory 127.0.0.1, playbook.yml
