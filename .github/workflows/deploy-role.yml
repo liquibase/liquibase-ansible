@@ -7,12 +7,22 @@ on:
         description: "Value from the version i.e 4.26.0"
         type: string
         required: true
+      dry_run: 
+        description: 'Flag to indicate if the workflow is triggered to create a dry-run release'
+        required: true
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       version:
         description: "Value from the version i.e 4.26.0"
         type: string
         required: true
+      dry_run: 
+        description: 'Flag to indicate if the workflow is triggered to create a dry-run release'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -52,9 +62,14 @@ jobs:
           else
             git commit -m "Update liquibase.version to ${{ inputs.version }}"
             git remote set-url origin https://liquibot:${{ secrets.BOT_TOKEN }}@github.com/liquibase/liquibase-ansible.git
-            git push
+            if [[ "${{ inputs.dry_run }}" == false ]]; then
+              git push
+            else
+                echo "Dry run mode: changes have not been pushed."
+            fi
           fi
 
       - name: Ansible import
+        if: ${{ inputs.dry_run == false }}
         run: |
           ansible-galaxy role import --token ${{ secrets.ANSIBLE_TOKEN }} --branch main --role-name liquibase liquibase liquibase-ansible
