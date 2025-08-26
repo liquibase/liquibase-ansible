@@ -19,7 +19,7 @@ This repository provides Ansible roles for installing different distributions of
 
 - Downloads from repo.liquibase.com
 - Enhanced security features and enterprise capabilities
-- Installs to `/usr/local/liquibase-secure`
+- Installs to `/usr/local/liquibase`
 
 ## Requirements
 
