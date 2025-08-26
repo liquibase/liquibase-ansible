@@ -1,0 +1,36 @@
+---
+galaxy_info:
+  author: liquibase
+  company: liquibase
+  description: {{ .description }}
+  role_name: {{ .galaxy_name }}
+  galaxy_tags:
+    - development
+{{- if eq .distribution_name "liquibase-secure" }}
+    - security
+{{- end }}
+  license: Apache-2.0
+  min_ansible_version: 2.0
+  platforms:
+    - name: Alpine
+      versions:
+        - all
+    - name: Archlinux
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Fedora
+      versions:
+        - 38
+        - 39
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
