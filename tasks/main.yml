@@ -10,64 +10,64 @@
     name: andrewrothstein.temurin
   vars:
     openjdk_app: jre
-- name: Check for installation in {{ liquibase_install_dir }}
+- name: Check for installation in {{ "{{ liquibase_install_dir }}" }}
   become: true
   become_user: root
   ansible.builtin.stat:
-    path: '{{ liquibase_install_dir }}'
+    path: '{{ "{{ liquibase_install_dir }}" }}'
   changed_when: false
   register: liquibase_binary
-- name: Downloading and installing liquibase
+- name: Downloading and installing liquibase-secure
   when: not liquibase_binary.stat.exists
   block:
-    - name: Downloading {{ liquibase_tgz_url }}
+    - name: Downloading {{ "{{ liquibase_tgz_url }}" }}
       become: true
       become_user: root
       ansible.builtin.get_url:
-        url: '{{ liquibase_tgz_url }}'
-        dest: '{{ liquibase_tmp_tgz }}'
-        checksum: '{{ liquibase_checksum }}'
+        url: '{{ "{{ liquibase_tgz_url }}" }}'
+        dest: '{{ "{{ liquibase_tmp_tgz }}" }}'
+        checksum: '{{ "{{ liquibase_checksum }}" }}'
         mode: '644'
 
-    - name: Mkdir {{ liquibase_install_dir }}
+    - name: Mkdir {{ "{{ liquibase_install_dir }}" }}
       become: true
       become_user: root
       ansible.builtin.file:
-        path: '{{ liquibase_install_dir }}'
+        path: '{{ "{{ liquibase_install_dir }}" }}'
         state: directory
         mode: '755'
 
-    - name: Unarchiving {{ liquibase_tmp_tgz }}
+    - name: Unarchiving {{ "{{ liquibase_tmp_tgz }}" }}
       become: true
       become_user: root
       ansible.builtin.unarchive:
         remote_src: true
-        src: '{{ liquibase_tmp_tgz }}'
-        dest: '{{ liquibase_install_dir }}'
-        creates: '{{ liquibase_install_dir }}/liquibase'
+        src: '{{ "{{ liquibase_tmp_tgz }}" }}'
+        dest: '{{ "{{ liquibase_install_dir }}" }}'
+        creates: '{{ "{{ liquibase_install_dir }}" }}/liquibase'
   always:
-    - name: Rm {{ liquibase_tmp_tgz }}
+    - name: Rm {{ "{{ liquibase_tmp_tgz }}" }}
       become: true
       become_user: root
       ansible.builtin.file:
-        path: '{{ liquibase_tmp_tgz }}'
+        path: '{{ "{{ liquibase_tmp_tgz }}" }}'
         state: absent
 
-- name: Linking {{ liquibase_install_link_dir }} to {{ liquibase_install_dir }}
+- name: Linking {{ "{{ liquibase_install_link_dir }}" }} to {{ "{{ liquibase_install_dir }}" }}
   become: true
   become_user: root
   ansible.builtin.file:
-    src: '{{ liquibase_install_dir }}'
-    dest: '{{ liquibase_install_link_dir }}'
+    src: '{{ "{{ liquibase_install_dir }}" }}'
+    dest: '{{ "{{ liquibase_install_link_dir }}" }}'
     state: link
 
 - name: Add to default path and set default environment vars...
   become: true
   become_user: root
   with_items:
-    - f: liquibase.sh
+    - f: liquibase-secure.sh
       d: /etc/profile.d
   ansible.builtin.template:
-    src: '{{ item.f }}.j2'
-    dest: '{{ item.d }}/{{ item.f }}'
-    mode: '{{ item.m | default("644") }}'
+    src: '{{ "{{ item.f }}" }}.j2'
+    dest: '{{ "{{ item.d }}" }}/{{ "{{ item.f }}" }}'
+    mode: '{{ "{{ item.m | default(\"644\") }}" }}'
