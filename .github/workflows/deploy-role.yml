@@ -207,9 +207,13 @@ jobs:
           process_template "templates/handlers/main.yml.tmpl" "handlers/main.yml"
           process_template "templates/templates/liquibase.sh.j2.tmpl" "templates/$DISTRIBUTION_NAME.sh.j2"
 
+      - name: Install validation tools
+        run: |
+          pip install ansible-lint yamllint
+
       - name: Validate generated role
         run: |
-          # Basic validation
+          # Basic validation (non-blocking for now)
           ansible-lint . || true
           yamllint . || true
 
