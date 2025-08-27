@@ -80,7 +80,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          repository: liquibase/liquibase-ansible
           token: ${{ steps.get-token.outputs.token }}
 
       - name: Configure Git
