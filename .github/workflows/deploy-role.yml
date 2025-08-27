@@ -78,7 +78,7 @@ jobs:
           permission-contents: write
 
       - name: Checkout code
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@v4
         with:
           repository: liquibase/liquibase-ansible
           token: ${{ steps.get-token.outputs.token }}
@@ -89,7 +89,7 @@ jobs:
           git config --local user.name "liquibot"
 
       - name: Cache Dependencies
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.3.0
+        uses: actions/cache@v4
         with:
           path: |
             ~/.ansible/collections
