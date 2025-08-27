@@ -80,8 +80,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ steps.get-token.outputs.token }}
+          repository: liquibase/liquibase-ansible
           ref: DAT-20702
+          token: ${{ steps.get-token.outputs.token }}
 
       - name: Configure Git
         run: |
@@ -94,7 +95,6 @@ jobs:
           path: |
             ~/.ansible/collections
           key: ${{ runner.os }}-deps-v1
-
 
       - name: Set distribution-specific variables
         id: distribution-config
@@ -118,7 +118,6 @@ jobs:
               ;;
           esac
 
-
       - name: Download and verify package
         run: |
           if [[ "${{ inputs.dry_run }}" == "true" && -n "${{ inputs.dry_run_tar_gz_url }}" ]]; then
@@ -141,7 +140,7 @@ jobs:
           SECURE="${{ steps.distribution-config.outputs.secure }}"
           DESCRIPTION="${{ steps.distribution-config.outputs.description }}"
           GALAXY_NAME="${{ steps.distribution-config.outputs.galaxy_name }}"
-          
+
           # Function to process templates with bash substitution
           process_template() {
             local template_file="$1"
@@ -199,7 +198,7 @@ jobs:
             mkdir -p "$(dirname "$output_file")"
             echo "$content" > "$output_file"
           }
-          
+
           # Generate all template files
           process_template "templates/defaults/main.yml.tmpl" "defaults/main.yml"
           process_template "templates/vars/main.yml.tmpl" "vars/main.yml"
@@ -245,7 +244,7 @@ jobs:
       #       --branch main \
       #       --role-name ${{ steps.distribution-config.outputs.galaxy_name }} \
       #       liquibase liquibase-ansible
-            
+
       #     echo "Successfully published to Galaxy as liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
       #     echo "Install with: ansible-galaxy role install liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
 
