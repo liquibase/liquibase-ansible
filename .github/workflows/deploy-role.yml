@@ -33,7 +33,7 @@ on:
         type: string
         required: true
       version:
-        description: "Liquibase version (e.g., 4.26.0 for standard, DAT-20703 for secure)"
+        description: "Liquibase version (e.g., 4.26.0)"
         type: string
         required: true
       dry_run:

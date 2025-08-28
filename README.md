@@ -71,7 +71,7 @@ Install specific secure version:
   roles:
     - role: liquibase.liquibase-secure
       vars:
-        liquibase_ver: "DAT-20703"
+        liquibase_ver: "5.0"
 ```
 
 ### Installing Both Distributions
@@ -86,7 +86,7 @@ You can install both distributions on the same system:
         liquibase_ver: "4.33.0"
     - role: liquibase.liquibase-secure
       vars:
-        liquibase_ver: "DAT-20703"
+        liquibase_ver: "5.0"
 ```
 
 ## Example Playbook installation process
