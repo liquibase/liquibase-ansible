@@ -2,18 +2,24 @@ name: Ansible Role Deploy
 
 permissions:
   contents: write
-  id-token: write # Required for OIDC authentication
+  id-token: write
 
 on:
   workflow_dispatch:
     inputs:
+      distribution:
+        description: "Liquibase distribution to deploy"
+        type: choice
+        options:
+          - liquibase
+          - liquibase-secure
+        required: true
       version:
         description: "Value from the version i.e 4.26.0"
         type: string
         required: true
       dry_run:
-        description: "Flag to indicate if the workflow is triggered to create a dry-run release"
-        required: true
+        description: "Dry run mode"
         type: boolean
         default: false
       dry_run_tar_gz_url:
@@ -22,28 +28,32 @@ on:
         type: string
   workflow_call:
     inputs:
+      distribution:
+        description: "Liquibase distribution to deploy"
+        type: string
+        required: true
       version:
-        description: "Value from the version i.e 4.26.0"
+        description: "Liquibase version (e.g., 4.26.0)"
         type: string
         required: true
       dry_run:
-        description: "Flag to indicate if the workflow is triggered to create a dry-run release"
-        required: true
+        description: "Dry run mode"
         type: boolean
         default: false
       dry_run_tar_gz_url:
         description: "URL of the dry-run tar.gz release"
-        required: false
         type: string
+        required: false
 
 jobs:
-  build_and_deploy_ansible:
+  deploy-role:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       LIQUIBASE_VERSION: ${{ inputs.version }}
+      DISTRIBUTION: ${{ inputs.distribution }}
 
     steps:
-
       - name: Configure AWS credentials for vault access
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -71,40 +81,178 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: liquibase/liquibase-ansible
+          ref: DAT-20702
           token: ${{ steps.get-token.outputs.token }}
 
       - name: Configure Git
         run: |
           git config --local user.email "64099989+liquibot@users.noreply.github.com"
           git config --local user.name "liquibot"
-                
-      - name: Update main.yml
+
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ansible/collections
+          key: ${{ runner.os }}-deps-v1
+
+      - name: Set distribution-specific variables
+        id: distribution-config
+        run: |
+          case "${{ inputs.distribution }}" in
+            "liquibase")
+              echo "mirror=https://github.com/liquibase/liquibase/releases/download" >> $GITHUB_OUTPUT
+              echo "filename=liquibase-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              echo "galaxy_name=liquibase" >> $GITHUB_OUTPUT
+              echo "secure=false" >> $GITHUB_OUTPUT
+              echo "description=installs liquibase" >> $GITHUB_OUTPUT
+              echo "download_url=https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              ;;
+            "liquibase-secure")
+              echo "mirror=https://repo.liquibase.com/releases/secure" >> $GITHUB_OUTPUT
+              echo "filename=liquibase-secure-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              echo "galaxy_name=liquibase-secure" >> $GITHUB_OUTPUT
+              echo "secure=true" >> $GITHUB_OUTPUT
+              echo "description=installs liquibase secure" >> $GITHUB_OUTPUT
+              echo "download_url=https://repo.liquibase.com/releases/secure/${{ inputs.version }}/liquibase-secure-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Download and verify package
+        run: |
+          if [[ "${{ inputs.dry_run }}" == "true" && -n "${{ inputs.dry_run_tar_gz_url }}" ]]; then
+            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ secrets.GITHUB_TOKEN }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}
+          else
+            wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
+          fi
+          CHECKSUM=$(sha256sum ${{ steps.distribution-config.outputs.filename }} | awk '{print $1}')
+          echo "PACKAGE_CHECKSUM=sha256:$CHECKSUM" >> $GITHUB_ENV
+          echo "SHA256: $CHECKSUM"
+
+      - name: Generate ${{ inputs.distribution }} role
+        run: |
+          # Set template variables
+          DISTRIBUTION_NAME="${{ inputs.distribution }}"
+          VERSION="${{ inputs.version }}"
+          MIRROR="${{ steps.distribution-config.outputs.mirror }}"
+          FILENAME="${{ steps.distribution-config.outputs.filename }}"
+          CHECKSUM="$PACKAGE_CHECKSUM"
+          SECURE="${{ steps.distribution-config.outputs.secure }}"
+          DESCRIPTION="${{ steps.distribution-config.outputs.description }}"
+          GALAXY_NAME="${{ steps.distribution-config.outputs.galaxy_name }}"
+
+          # Function to process templates with bash substitution
+          process_template() {
+            local template_file="$1"
+            local output_file="$2"
+            
+            # Read template content
+            content=$(cat "$template_file")
+            
+            # Handle conditional blocks for secure distribution
+            if [[ "$SECURE" == "true" ]]; then
+              # Keep secure blocks, remove non-secure blocks
+              content=$(echo "$content" | awk '
+                /\{\{- if eq \.secure "false" \}\}/ { skip=1; next }
+                /\{\{- if eq \.secure "true" \}\}/ { next }
+                /\{\{- end \}\}/ { if(skip) skip=0; next }
+                !skip { print }
+              ')
+            else
+              # Keep non-secure blocks, remove secure blocks  
+              content=$(echo "$content" | awk '
+                /\{\{- if eq \.secure "true" \}\}/ { skip=1; next }
+                /\{\{- if eq \.secure "false" \}\}/ { next }
+                /\{\{- end \}\}/ { if(skip) skip=0; next }
+                !skip { print }
+              ')
+            fi
+            
+            # Handle distribution-specific conditionals
+            if [[ "$DISTRIBUTION_NAME" == "liquibase-secure" ]]; then
+              content=$(echo "$content" | awk '
+                /\{\{- if eq \.distribution_name "liquibase" \}\}/ { skip=1; next }
+                /\{\{- if eq \.distribution_name "liquibase-secure" \}\}/ { next }
+                /\{\{- end \}\}/ { if(skip) skip=0; next }
+                !skip { print }
+              ')
+            else
+              content=$(echo "$content" | awk '
+                /\{\{- if eq \.distribution_name "liquibase-secure" \}\}/ { skip=1; next }
+                /\{\{- if eq \.distribution_name "liquibase" \}\}/ { next }
+                /\{\{- end \}\}/ { if(skip) skip=0; next }
+                !skip { print }
+              ')
+            fi
+            
+            # Replace template variables
+            content=$(echo "$content" | sed "s/{{ \.distribution_name }}/$DISTRIBUTION_NAME/g")
+            content=$(echo "$content" | sed "s/{{ \.version }}/$VERSION/g") 
+            content=$(echo "$content" | sed "s|{{ \.mirror }}|$MIRROR|g")
+            content=$(echo "$content" | sed "s/{{ \.filename }}/$FILENAME/g")
+            content=$(echo "$content" | sed "s/{{ \.checksum }}/$CHECKSUM/g")
+            content=$(echo "$content" | sed "s/{{ \.description }}/$DESCRIPTION/g")
+            content=$(echo "$content" | sed "s/{{ \.galaxy_name }}/$GALAXY_NAME/g")
+            
+            # Write processed content to output file
+            mkdir -p "$(dirname "$output_file")"
+            echo "$content" > "$output_file"
+          }
+
+          # Generate all template files
+          process_template "templates/defaults/main.yml.tmpl" "defaults/main.yml"
+          process_template "templates/vars/main.yml.tmpl" "vars/main.yml"
+          process_template "templates/meta/main.yml.tmpl" "meta/main.yml"
+          process_template "templates/tasks/main.yml.tmpl" "tasks/main.yml"
+          process_template "templates/handlers/main.yml.tmpl" "handlers/main.yml"
+          process_template "templates/templates/liquibase.sh.j2.tmpl" "templates/$DISTRIBUTION_NAME.sh.j2"
+
+      - name: Install validation tools
+        run: |
+          pip install ansible-lint yamllint
+
+      - name: Validate generated role
+        run: |
+          # Basic validation (non-blocking for now)
+          ansible-lint . || true
+          yamllint . || true
+
+          # Check required files exist
+          for file in defaults/main.yml vars/main.yml meta/main.yml tasks/main.yml; do
+            if [[ ! -f "$file" ]]; then
+              echo "Error: Required file $file not generated"
+              exit 1
+            fi
+          done
+
+      - name: Update role files and commit
         if: ${{ inputs.dry_run == false }}
         run: |
-          sed -i "s/liquibase_ver: .*/liquibase_ver: ${{ inputs.version }}/" defaults/main.yml
-          if [[ "${{ inputs.dry_run }}" == false ]]; then
-            wget -O liquibase-${{ inputs.version }}.tar.gz https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz
-          else
-            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ secrets.GITHUB_TOKEN }}" -O liquibase-${{ inputs.version }}.tar.gz ${{ inputs.dry_run_tar_gz_url }}
-          fi
-          sha256=$(sha256sum liquibase-${{ inputs.version }}.tar.gz | awk '{ print $1 }')
-          echo "SHA256: $sha256"
-          echo "  '${{ inputs.version }}': sha256:$sha256" >> defaults/main.yml
-          cat defaults/main.yml
-          git add defaults/main.yml
+          # Add generated files
+          git add defaults/main.yml vars/main.yml meta/main.yml tasks/main.yml handlers/main.yml templates/
+
           # Check if there are changes before committing
           if git diff-index --quiet HEAD --; then
-            echo "No changes to commit."
+            echo "No changes to commit for ${{ inputs.distribution }}."
           else
-            git commit -m "Update liquibase.version to ${{ inputs.version }}"
-            if [[ "${{ inputs.dry_run }}" == false ]]; then
-              git push
-            else
-                echo "Dry run mode: changes have not been pushed."
-            fi
+            git commit -m "Update ${{ inputs.distribution }} distribution to ${{ inputs.version }}"
+            git push
           fi
 
-      - name: Ansible import
-        if: ${{ inputs.dry_run == false }}
+      # - name: Publish ${{ inputs.distribution }} to Ansible Galaxy
+      #   if: ${{ inputs.dry_run == false }}
+      #   run: |
+      #     # Publish to Galaxy with the correct role name
+      #     ansible-galaxy role import \
+      #       --token ${{ env.ANSIBLE_TOKEN }} \
+      #       --branch main \
+      #       --role-name ${{ steps.distribution-config.outputs.galaxy_name }} \
+      #       liquibase liquibase-ansible
+
+      #     echo "Successfully published to Galaxy as liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
+      #     echo "Install with: ansible-galaxy role install liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
+
+      - name: Cleanup
+        if: always()
         run: |
-          ansible-galaxy role import --token ${{ env.ANSIBLE_TOKEN }} --branch main --role-name liquibase liquibase liquibase-ansible
+          rm -f *.tar.gz

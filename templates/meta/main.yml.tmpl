@@ -2,11 +2,13 @@
 galaxy_info:
   author: liquibase
   company: liquibase
-  description: installs liquibase secure
-  role_name: liquibase-secure
+  description: {{ .description }}
+  role_name: {{ .galaxy_name }}
   galaxy_tags:
     - development
+{{- if eq .distribution_name "liquibase-secure" }}
     - security
+{{- end }}
   license: Apache-2.0
   min_ansible_version: 2.0
   platforms:
