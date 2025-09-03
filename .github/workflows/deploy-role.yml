@@ -75,6 +75,7 @@ jobs:
           app-id: ${{ env.LIQUIBASE_GITHUB_APP_ID }}
           private-key: ${{ env.LIQUIBASE_GITHUB_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: liquibase,liquibase-ansible
           permission-contents: write
 
       - name: Checkout code
@@ -121,7 +122,12 @@ jobs:
       - name: Download and verify package
         run: |
           if [[ "${{ inputs.dry_run }}" == "true" && -n "${{ inputs.dry_run_tar_gz_url }}" ]]; then
-            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ steps.get-token.outputs.token }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}
+            echo "Downloading dry-run package from: ${{ inputs.dry_run_tar_gz_url }}"
+            if ! wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ steps.get-token.outputs.token }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}; then
+              echo "Failed to download dry-run package. The release may not exist or be inaccessible."
+              echo "Falling back to regular release download."
+              wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
+            fi
           else
             wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
           fi
