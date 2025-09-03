@@ -121,7 +121,7 @@ jobs:
       - name: Download and verify package
         run: |
           if [[ "${{ inputs.dry_run }}" == "true" && -n "${{ inputs.dry_run_tar_gz_url }}" ]]; then
-            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ secrets.GITHUB_TOKEN }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}
+            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ steps.get-token.outputs.token }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}
           else
             wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
           fi
