@@ -100,22 +100,40 @@ jobs:
       - name: Set distribution-specific variables
         id: distribution-config
         run: |
+          # Extract actual version for dry runs (remove dry-run prefix if present)
+          VERSION="${{ inputs.version }}"
+          if [[ "${{ inputs.dry_run }}" == "true" && "$VERSION" =~ ^dry-run- ]]; then
+            # For dry runs, we should have a separate actual version
+            # For now, we'll skip the fallback URL generation for dry runs
+            ACTUAL_VERSION=""
+          else
+            ACTUAL_VERSION="$VERSION"
+          fi
+          
           case "${{ inputs.distribution }}" in
             "liquibase")
               echo "mirror=https://github.com/liquibase/liquibase/releases/download" >> $GITHUB_OUTPUT
-              echo "filename=liquibase-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              echo "filename=liquibase-$VERSION.tar.gz" >> $GITHUB_OUTPUT
               echo "galaxy_name=liquibase" >> $GITHUB_OUTPUT
               echo "secure=false" >> $GITHUB_OUTPUT
               echo "description=installs liquibase" >> $GITHUB_OUTPUT
-              echo "download_url=https://github.com/liquibase/liquibase/releases/download/v${{ inputs.version }}/liquibase-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              if [[ -n "$ACTUAL_VERSION" ]]; then
+                echo "download_url=https://github.com/liquibase/liquibase/releases/download/v$ACTUAL_VERSION/liquibase-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
+              else
+                echo "download_url=" >> $GITHUB_OUTPUT
+              fi
               ;;
             "liquibase-secure")
               echo "mirror=https://repo.liquibase.com/releases/secure" >> $GITHUB_OUTPUT
-              echo "filename=liquibase-secure-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              echo "filename=liquibase-secure-$VERSION.tar.gz" >> $GITHUB_OUTPUT
               echo "galaxy_name=liquibase-secure" >> $GITHUB_OUTPUT
               echo "secure=true" >> $GITHUB_OUTPUT
               echo "description=installs liquibase secure" >> $GITHUB_OUTPUT
-              echo "download_url=https://repo.liquibase.com/releases/secure/${{ inputs.version }}/liquibase-secure-${{ inputs.version }}.tar.gz" >> $GITHUB_OUTPUT
+              if [[ -n "$ACTUAL_VERSION" ]]; then
+                echo "download_url=https://repo.liquibase.com/releases/secure/$ACTUAL_VERSION/liquibase-secure-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
+              else
+                echo "download_url=" >> $GITHUB_OUTPUT
+              fi
               ;;
           esac
 
@@ -125,8 +143,13 @@ jobs:
             echo "Downloading dry-run package from: ${{ inputs.dry_run_tar_gz_url }}"
             if ! wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ steps.get-token.outputs.token }}" -O ${{ steps.distribution-config.outputs.filename }} ${{ inputs.dry_run_tar_gz_url }}; then
               echo "Failed to download dry-run package. The release may not exist or be inaccessible."
-              echo "Falling back to regular release download."
-              wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
+              if [[ -n "${{ steps.distribution-config.outputs.download_url }}" ]]; then
+                echo "Falling back to regular release download."
+                wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
+              else
+                echo "No fallback URL available for dry-run packages."
+                exit 1
+              fi
             fi
           else
             wget -O ${{ steps.distribution-config.outputs.filename }} ${{ steps.distribution-config.outputs.download_url }}
