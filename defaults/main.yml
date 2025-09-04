@@ -1,8 +1,8 @@
 ---
 # defaults file for liquibase-secure
-liquibase_ver: 5-secure-release-test
+liquibase_ver: secure-5.0.0-uat1
 liquibase_distribution: liquibase-secure
 liquibase_mirror: https://repo.liquibase.com/releases/secure
 liquibase_parent_install_dir: /usr/local
 liquibase_checksums:
-  '5-secure-release-test': sha256:d40fca9a209f2ad224e6c8d4d5cd02f2119c85684514606356c2b8facec337f7
+  'secure-5.0.0-uat1': sha256:65b0719056da130bdc95e46b39ad6b4a5ff667c242ebf68ff93a107e50f3856f
