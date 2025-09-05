@@ -4,6 +4,7 @@ galaxy_info:
   company: liquibase
   description: installs liquibase secure
   role_name: liquibase-secure
+  namespace: liquibase
   galaxy_tags:
     - development
     - security
