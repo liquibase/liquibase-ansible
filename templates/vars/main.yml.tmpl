@@ -2,11 +2,7 @@
 # vars file for {{ .distribution_name }}
 liquibase_tgz: {{ .filename }}
 liquibase_tmp_tgz: /tmp/{{ "{{ liquibase_tgz }}" }}
-{{- if eq .secure "true" }}
-liquibase_tgz_url: '{{ .mirror }}/{{ "{{ liquibase_ver }}" }}/{{ .filename }}'
-{{- else }}
-liquibase_tgz_url: '{{ .mirror }}/v{{ "{{ liquibase_ver }}" }}/{{ .filename }}'
-{{- end }}
+liquibase_tgz_url: '{{ .mirror }}/{{ .filename }}'
 
 liquibase_install_dir: '{{ "{{ liquibase_parent_install_dir }}" }}/{{ .distribution_name }}-{{ "{{ liquibase_ver }}" }}'
 liquibase_install_link_dir: '{{ "{{ liquibase_parent_install_dir }}" }}/{{ .distribution_name }}'
