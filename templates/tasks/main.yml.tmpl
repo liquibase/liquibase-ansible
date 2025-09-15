@@ -65,7 +65,7 @@
   become: true
   become_user: root
   with_items:
-    - f: {{ .distribution_name }}.sh
+    - f: liquibase.sh
       d: /etc/profile.d
   ansible.builtin.template:
     src: '{{ "{{ item.f }}" }}.j2'
