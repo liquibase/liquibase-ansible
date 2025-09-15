@@ -112,25 +112,25 @@ jobs:
           
           case "${{ inputs.distribution }}" in
             "liquibase")
-              echo "mirror=https://github.com/liquibase/liquibase/releases/download" >> $GITHUB_OUTPUT
+              echo "mirror=https://package.liquibase.com/downloads/oss/ansible" >> $GITHUB_OUTPUT
               echo "filename=liquibase-$VERSION.tar.gz" >> $GITHUB_OUTPUT
               echo "galaxy_name=liquibase" >> $GITHUB_OUTPUT
               echo "secure=false" >> $GITHUB_OUTPUT
               echo "description=installs liquibase" >> $GITHUB_OUTPUT
               if [[ -n "$ACTUAL_VERSION" ]]; then
-                echo "download_url=https://github.com/liquibase/liquibase/releases/download/v$ACTUAL_VERSION/liquibase-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
+                echo "download_url=https://package.liquibase.com/downloads/oss/ansible/liquibase-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
               else
                 echo "download_url=" >> $GITHUB_OUTPUT
               fi
               ;;
             "liquibase-secure")
-              echo "mirror=https://repo.liquibase.com/releases/secure" >> $GITHUB_OUTPUT
+              echo "mirror=https://package.liquibase.com/downloads/secure/ansible" >> $GITHUB_OUTPUT
               echo "filename=liquibase-secure-$VERSION.tar.gz" >> $GITHUB_OUTPUT
               echo "galaxy_name=liquibase-secure" >> $GITHUB_OUTPUT
               echo "secure=true" >> $GITHUB_OUTPUT
               echo "description=installs liquibase secure" >> $GITHUB_OUTPUT
               if [[ -n "$ACTUAL_VERSION" ]]; then
-                echo "download_url=https://repo.liquibase.com/releases/secure/$ACTUAL_VERSION/liquibase-secure-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
+                echo "download_url=https://package.liquibase.com/downloads/secure/ansible/liquibase-secure-$ACTUAL_VERSION.tar.gz" >> $GITHUB_OUTPUT
               else
                 echo "download_url=" >> $GITHUB_OUTPUT
               fi
