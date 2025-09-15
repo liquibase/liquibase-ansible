@@ -1,0 +1,9 @@
+---
+# vars file for liquibase-secure
+liquibase_tgz: liquibase-secure-5-secure-release-test.tar.gz
+liquibase_tmp_tgz: /tmp/{{ liquibase_tgz }}
+liquibase_tgz_url: 'https://package.liquibase.com/downloads/secure/ansible/liquibase-secure-5-secure-release-test.tar.gz'
+
+liquibase_install_dir: '{{ liquibase_parent_install_dir }}/liquibase-secure-{{ liquibase_ver }}'
+liquibase_install_link_dir: '{{ liquibase_parent_install_dir }}/liquibase-secure'
+liquibase_checksum: '{{ liquibase_checksums[liquibase_ver] }}'
