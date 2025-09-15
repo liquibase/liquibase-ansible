@@ -268,18 +268,18 @@ jobs:
             git push
           fi
 
-      # - name: Publish ${{ inputs.distribution }} to Ansible Galaxy
-      #   if: ${{ inputs.dry_run == false }}
-      #   run: |
-      #     # Publish to Galaxy with the correct role name
-      #     ansible-galaxy role import \
-      #       --token ${{ env.ANSIBLE_TOKEN }} \
-      #       --branch main \
-      #       --role-name ${{ steps.distribution-config.outputs.galaxy_name }} \
-      #       liquibase liquibase-ansible
+      - name: Publish ${{ inputs.distribution }} to Ansible Galaxy
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          # Publish to Galaxy with the correct role name
+          ansible-galaxy role import \
+            --token ${{ env.ANSIBLE_TOKEN }} \
+            --branch main \
+            --role-name ${{ steps.distribution-config.outputs.galaxy_name }} \
+            liquibase liquibase-ansible
 
-      #     echo "Successfully published to Galaxy as liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
-      #     echo "Install with: ansible-galaxy role install liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
+          echo "Successfully published to Galaxy as liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
+          echo "Install with: ansible-galaxy role install liquibase.${{ steps.distribution-config.outputs.galaxy_name }}"
 
       - name: Cleanup
         if: always()
