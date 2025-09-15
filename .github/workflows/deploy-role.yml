@@ -109,7 +109,7 @@ jobs:
           else
             ACTUAL_VERSION="$VERSION"
           fi
-          
+
           case "${{ inputs.distribution }}" in
             "liquibase")
               echo "mirror=https://package.liquibase.com/downloads/oss/ansible" >> $GITHUB_OUTPUT
@@ -234,7 +234,7 @@ jobs:
           process_template "templates/meta/main.yml.tmpl" "meta/main.yml"
           process_template "templates/tasks/main.yml.tmpl" "tasks/main.yml"
           process_template "templates/handlers/main.yml.tmpl" "handlers/main.yml"
-          process_template "templates/templates/liquibase.sh.j2.tmpl" "templates/$DISTRIBUTION_NAME.sh.j2"
+          process_template "templates/templates/liquibase.sh.j2.tmpl" "templates/liquibase.sh.j2"
 
       - name: Install validation tools
         run: |
