@@ -1,10 +1,10 @@
 ---
 # vars file for liquibase-secure
-liquibase_tgz: liquibase-secure-secure-5.0.0-uat1.tar.gz
+liquibase_tgz: liquibase-secure-5.0.0.tar.gz
 liquibase_tmp_tgz: /tmp/{{ "{{ liquibase_tgz }}" }}
-liquibase_tgz_url: 'https://repo.liquibase.com/releases/secure/{{ "{{ liquibase_ver }}" }}/liquibase-secure-secure-5.0.0-uat1.tar.gz'
+liquibase_tgz_url: 'https://repo.liquibase.com/releases/secure/{{ "{{ liquibase_ver }}" }}/liquibase-secure-5.0.0.tar.gz'
 {{- else }}
-liquibase_tgz_url: 'https://repo.liquibase.com/releases/secure/v{{ "{{ liquibase_ver }}" }}/liquibase-secure-secure-5.0.0-uat1.tar.gz'
+liquibase_tgz_url: 'https://repo.liquibase.com/releases/secure/v{{ "{{ liquibase_ver }}" }}/liquibase-secure-5.0.0.tar.gz'
 
 liquibase_install_dir: '{{ "{{ liquibase_parent_install_dir }}" }}/liquibase-secure-{{ "{{ liquibase_ver }}" }}'
 liquibase_install_link_dir: '{{ "{{ liquibase_parent_install_dir }}" }}/liquibase-secure'
