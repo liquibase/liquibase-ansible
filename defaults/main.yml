@@ -1,8 +1,8 @@
 ---
-# defaults file for liquibase-secure
+# defaults file for liquibase
 liquibase_ver: 5.0.0
-liquibase_distribution: liquibase-secure
-liquibase_mirror: https://repo.liquibase.com/releases/secure
+liquibase_distribution: liquibase
+liquibase_mirror: https://github.com/liquibase/liquibase/releases/download
 liquibase_parent_install_dir: /usr/local
 liquibase_checksums:
-  '5.0.0': sha256:47c96bcfc1efb06d1906faeca308a609a99013bf2349ccb61e287edfb8d28955
+  '5.0.0': sha256:4865954d3b95032beae8cd10ccdb4a4feb7e7e684d886fd979fdbb1305fb6a44
