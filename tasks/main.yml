@@ -17,7 +17,7 @@
     path: '{{ "{{ liquibase_install_dir }}" }}'
   changed_when: false
   register: liquibase_binary
-- name: Downloading and installing liquibase-secure
+- name: Downloading and installing liquibase
   when: not liquibase_binary.stat.exists
   block:
     - name: Downloading {{ "{{ liquibase_tgz_url }}" }}
@@ -65,7 +65,7 @@
   become: true
   become_user: root
   with_items:
-    - f: liquibase-secure.sh
+    - f: liquibase.sh
       d: /etc/profile.d
   ansible.builtin.template:
     src: '{{ "{{ item.f }}" }}.j2'
