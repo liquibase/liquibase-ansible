@@ -2,7 +2,33 @@
 galaxy_info:
   author: liquibase
   company: liquibase
-  description: installs liquibase
-  role_name: liquibase
+  description: installs liquibase secure
+  role_name: liquibase-secure
   galaxy_tags:
     - development
+    - security
+  license: Apache-2.0
+  min_ansible_version: 2.0
+  platforms:
+    - name: Alpine
+      versions:
+        - all
+    - name: Archlinux
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: EL
+      versions:
+        - 8
+        - 9
+    - name: Fedora
+      versions:
+        - 38
+        - 39
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
