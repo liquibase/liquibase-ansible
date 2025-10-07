@@ -1,6 +1,6 @@
 ---
 # defaults file for liquibase
-liquibase_ver: 5.0.0
+liquibase_ver: 5.0.1
 liquibase_mirror: https://package.liquibase.com/downloads/oss/ansible
 liquibase_parent_install_dir: /usr/local
 liquibase_checksums:
@@ -119,3 +119,4 @@ liquibase_checksums:
   '5.0.0': sha256:4865954d3b95032beae8cd10ccdb4a4feb7e7e684d886fd979fdbb1305fb6a44
   '5.0.1': sha256:3ae11ccdcd4c080e421e5fd043bdbd624d56fcfc9b294d5d9d898cb8b074e449
   '5.0.0': sha256:4865954d3b95032beae8cd10ccdb4a4feb7e7e684d886fd979fdbb1305fb6a44
+  '5.0.1': sha256:3ae11ccdcd4c080e421e5fd043bdbd624d56fcfc9b294d5d9d898cb8b074e449
