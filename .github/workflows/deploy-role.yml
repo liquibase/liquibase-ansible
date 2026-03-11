@@ -118,7 +118,7 @@ jobs:
           else
             wget \
               -O "$FILE" \
-              "https://package.liquibase.com/downloads/oss/ansible/liquibase-${VERSION}.tar.gz"
+              "https://package.liquibase.com/downloads/oss/ansible/v${VERSION}/liquibase-${VERSION}.tar.gz"
           fi
 
           SHA256="$(sha256sum "$FILE" | awk '{ print $1 }')"
