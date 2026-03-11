@@ -8,31 +8,32 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Value from the version i.e 4.26.0"
+        description: "Liquibase version, for example 4.26.0"
         type: string
         required: true
       dry_run:
-        description: "Flag to indicate if the workflow is triggered to create a dry-run release"
+        description: "Flag to indicate if the workflow is triggered to create a dry-run release (without pushing commits/tags or importing to Galaxy)"
         required: true
         type: boolean
         default: false
       dry_run_tar_gz_url:
-        description: "URL of the dry-run tar.gz release"
+        description: "URL of the dry-run tar.gz release artifact"
         required: false
         type: string
+
   workflow_call:
     inputs:
       version:
-        description: "Value from the version i.e 4.26.0"
+        description: "Liquibase version, for example 4.26.0"
         type: string
         required: true
       dry_run:
-        description: "Flag to indicate if the workflow is triggered to create a dry-run release"
+        description: "Flag to indicate if the workflow is triggered to create a dry-run release (without pushing commits/tags or importing to Galaxy)"
         required: true
         type: boolean
         default: false
       dry_run_tar_gz_url:
-        description: "URL of the dry-run tar.gz release"
+        description: "URL of the dry-run tar.gz release artifact"
         required: false
         type: string
 
@@ -41,7 +42,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LIQUIBASE_VERSION: ${{ inputs.version }}
-
     steps:
       - name: Configure AWS credentials for vault access
         uses: aws-actions/configure-aws-credentials@v4
@@ -71,39 +71,118 @@ jobs:
         with:
           repository: liquibase/liquibase-ansible
           token: ${{ steps.get-token.outputs.token }}
+          fetch-depth: 0
 
       - name: Configure Git
         run: |
           git config --local user.email "64099989+liquibot@users.noreply.github.com"
           git config --local user.name "liquibot"
 
-      - name: Update main.yml
-        if: ${{ inputs.dry_run == false }}
+      - name: Validate inputs
         run: |
-          sed -i "s/liquibase_ver: .*/liquibase_ver: ${{ inputs.version }}/" defaults/main.yml
-          if [[ "${{ inputs.dry_run }}" == false ]]; then
-            wget -O liquibase-${{ inputs.version }}.tar.gz https://package.liquibase.com/downloads/oss/ansible/liquibase-${{ inputs.version }}.tar.gz
-          else
-            wget --content-disposition --header="Accept: application/octet-stream" --header="Authorization: Token ${{ secrets.GITHUB_TOKEN }}" -O liquibase-${{ inputs.version }}.tar.gz ${{ inputs.dry_run_tar_gz_url }}
-          fi
-          sha256=$(sha256sum liquibase-${{ inputs.version }}.tar.gz | awk '{ print $1 }')
-          echo "SHA256: $sha256"
-          echo "  '${{ inputs.version }}': sha256:$sha256" >> defaults/main.yml
-          cat defaults/main.yml
-          git add defaults/main.yml
-          # Check if there are changes before committing
-          if git diff-index --quiet HEAD --; then
-            echo "No changes to commit."
-          else
-            git commit -m "Update liquibase.version to ${{ inputs.version }}"
-            if [[ "${{ inputs.dry_run }}" == false ]]; then
-              git push
-            else
-                echo "Dry run mode: changes have not been pushed."
-            fi
+          VERSION="${{ inputs.version }}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must be semver, for example: 4.26.0"
+            exit 1
           fi
 
-      - name: Ansible import
-        if: ${{ inputs.dry_run == false }}
+          if [[ "${{ inputs.dry_run }}" == "true" && -z "${{ inputs.dry_run_tar_gz_url }}" ]]; then
+            echo "dry_run_tar_gz_url is required when dry_run=true"
+            exit 1
+          fi
+
+      - name: Fail if git tag already exists
+        if: ${{ !inputs.dry_run }}
         run: |
-          ansible-galaxy role import --token ${{ env.ANSIBLE_TOKEN }} --branch main --role-name liquibase liquibase liquibase-ansible
+          VERSION="${{ inputs.version }}"
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists"
+            exit 1
+          fi
+
+      # The Ansible role needs the checksum to verify the downloaded Liquibase archive.
+      - name: Download Liquibase tar.gz and calculate sha256
+        id: artifact
+        run: |
+          VERSION="${{ inputs.version }}"
+          FILE="liquibase-${VERSION}.tar.gz"
+
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            wget \
+              --content-disposition \
+              --header="Accept: application/octet-stream" \
+              --header="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -O "$FILE" \
+              "${{ inputs.dry_run_tar_gz_url }}"
+          else
+            wget \
+              -O "$FILE" \
+              "https://package.liquibase.com/downloads/oss/ansible/liquibase-${VERSION}.tar.gz"
+          fi
+
+          SHA256="$(sha256sum "$FILE" | awk '{ print $1 }')"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA256"
+
+      - name: Update defaults/main.yml
+        run: |
+          VERSION="${{ inputs.version }}"
+          SHA256="${{ steps.artifact.outputs.sha256 }}"
+
+          sed -i "s/^liquibase_ver:.*/liquibase_ver: $VERSION/" defaults/main.yml
+
+          if ! grep -q "'$VERSION': sha256:" defaults/main.yml; then
+            echo "  '$VERSION': sha256:$SHA256" >> defaults/main.yml
+          fi
+
+          cat defaults/main.yml
+
+      - name: Commit changes
+        id: commit_changes
+        run: |
+          git add defaults/main.yml
+
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "Update liquibase.version to ${{ inputs.version }}"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push commit to main
+        if: ${{ !inputs.dry_run && steps.commit_changes.outputs.changed == 'true' }}
+        run: git push origin HEAD:main
+
+      - name: Create and push git tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+
+      - name: Install Ansible CLI
+        if: ${{ !inputs.dry_run }}
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install ansible
+
+      - name: Import role into Ansible Galaxy
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ansible-galaxy role import \
+            --token "${{ env.ANSIBLE_TOKEN }}" \
+            --branch main \
+            --role-name liquibase \
+            liquibase \
+            liquibase-ansible
+
+      - name: Dry-run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "Dry run completed successfully."
+          echo "No commit was pushed."
+          echo "No git tag was created."
+          echo "No GitHub release was created."
+          echo "No Ansible Galaxy import was triggered."
