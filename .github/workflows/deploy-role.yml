@@ -116,9 +116,12 @@ jobs:
               -O "$FILE" \
               "${{ inputs.dry_run_tar_gz_url }}"
           else
+            # {mirror}/{filename} with no version subdirectory, matching
+            # liquibase_tgz_url in vars/main.yml. Scarf adds the v-prefixed tag
+            # when it redirects to the GitHub release asset.
             wget \
               -O "$FILE" \
-              "https://package.liquibase.com/downloads/oss/ansible/v${VERSION}/liquibase-${VERSION}.tar.gz"
+              "https://package.liquibase.com/downloads/oss/ansible/liquibase-${VERSION}.tar.gz"
           fi
 
           SHA256="$(sha256sum "$FILE" | awk '{ print $1 }')"
