@@ -116,12 +116,26 @@ jobs:
               -O "$FILE" \
               "${{ inputs.dry_run_tar_gz_url }}"
           else
-            # {mirror}/{filename} with no version subdirectory, matching
-            # liquibase_tgz_url in vars/main.yml. Scarf adds the v-prefixed tag
-            # when it redirects to the GitHub release asset.
+            # Read the mirror from the role itself so this URL and the role
+            # cannot drift apart again. Shape is {mirror}/{filename} with no
+            # version subdirectory: Scarf adds the v-prefixed tag when it
+            # redirects to the GitHub release asset, so carrying a v${VERSION}/
+            # segment here matches no route and 404s.
+            #
+            # Take the filename from $VERSION, not from liquibase_tgz_url in
+            # vars/main.yml. This step runs before "Update defaults/main.yml",
+            # so liquibase_ver is still the previous release at this point.
+            MIRROR="$(sed -n 's/^liquibase_mirror:[[:space:]]*//p' defaults/main.yml | head -1)"
+            MIRROR="$(printf '%s' "$MIRROR" | tr -d "\"'\r" | sed 's/[[:space:]]*$//')"
+
+            if [[ -z "$MIRROR" ]]; then
+              echo "Could not read liquibase_mirror from defaults/main.yml"
+              exit 1
+            fi
+
             wget \
               -O "$FILE" \
-              "https://package.liquibase.com/downloads/oss/ansible/liquibase-${VERSION}.tar.gz"
+              "${MIRROR}/liquibase-${VERSION}.tar.gz"
           fi
 
           SHA256="$(sha256sum "$FILE" | awk '{ print $1 }')"
