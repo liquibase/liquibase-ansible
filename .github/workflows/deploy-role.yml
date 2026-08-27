@@ -93,8 +93,11 @@ jobs:
 
           if printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
             echo "Version '$VERSION' accepted (dry_run=${DRY_RUN:-false})."
-          elif [ "${DRY_RUN:-false}" = "true" ]; then
+          elif [ "${DRY_RUN:-false}" = "true" ] && printf '%s' "$VERSION" | grep -Eq '^dry-run-[0-9]+$'; then
             echo "::warning::version '$VERSION' is not semver. Allowed only because dry_run=true never pushes a commit or a tag and never imports to Galaxy."
+          elif [ "${DRY_RUN:-false}" = "true" ]; then
+            echo "::error::refusing to deploy version '$VERSION': on a dry run the version must be semver or the orchestrator's dry-run-<run-id> shape. Later steps substitute this value into defaults/main.yml, so arbitrary strings are not accepted."
+            exit 1
           else
             echo "::error::refusing to deploy version '$VERSION': a production release version must be semver, for example: 4.26.0. Re-run with dry_run=true if this is a test."
             exit 1
@@ -107,8 +110,11 @@ jobs:
 
       - name: Fail if git tag already exists
         if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
+          set -euo pipefail
+
           if git rev-parse "$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists"
             exit 1
@@ -117,17 +123,23 @@ jobs:
       # The Ansible role needs the checksum to verify the downloaded Liquibase archive.
       - name: Download Liquibase tar.gz and calculate sha256
         id: artifact
+        env:
+          VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN_TAR_GZ_URL: ${{ inputs.dry_run_tar_gz_url }}
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${{ inputs.version }}"
+          set -euo pipefail
+
           FILE="liquibase-${VERSION}.tar.gz"
 
-          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+          if [ "${DRY_RUN:-false}" = "true" ]; then
             wget \
               --content-disposition \
               --header="Accept: application/octet-stream" \
-              --header="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              --header="Authorization: Bearer ${GH_API_TOKEN}" \
               -O "$FILE" \
-              "${{ inputs.dry_run_tar_gz_url }}"
+              "$DRY_RUN_TAR_GZ_URL"
           else
             wget \
               -O "$FILE" \
@@ -139,9 +151,11 @@ jobs:
           echo "SHA256: $SHA256"
 
       - name: Update defaults/main.yml
+        env:
+          VERSION: ${{ inputs.version }}
+          SHA256: ${{ steps.artifact.outputs.sha256 }}
         run: |
-          VERSION="${{ inputs.version }}"
-          SHA256="${{ steps.artifact.outputs.sha256 }}"
+          set -euo pipefail
 
           sed -i "s/^liquibase_ver:.*/liquibase_ver: $VERSION/" defaults/main.yml
 
@@ -153,6 +167,8 @@ jobs:
 
       - name: Commit changes
         id: commit_changes
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           git add defaults/main.yml
 
@@ -160,7 +176,7 @@ jobs:
             echo "No changes to commit."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            git commit -m "Update liquibase.version to ${{ inputs.version }}"
+            git commit -m "Update liquibase.version to $VERSION"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -170,8 +186,11 @@ jobs:
 
       - name: Create and push git tag
         if: ${{ !inputs.dry_run }}
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          VERSION="${{ inputs.version }}"
+          set -euo pipefail
+
           git tag "$VERSION"
           git push origin "$VERSION"
 
