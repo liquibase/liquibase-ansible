@@ -91,9 +91,9 @@ jobs:
             exit 1
           fi
 
-          if printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version '$VERSION' accepted (dry_run=${DRY_RUN:-false})."
-          elif [ "${DRY_RUN:-false}" = "true" ] && printf '%s' "$VERSION" | grep -Eq '^dry-run-[0-9]+$'; then
+          elif [ "${DRY_RUN:-false}" = "true" ] && [[ "$VERSION" =~ ^dry-run-[0-9]+$ ]]; then
             echo "::warning::version '$VERSION' is not semver. Allowed only because dry_run=true never pushes a commit or a tag and never imports to Galaxy."
           elif [ "${DRY_RUN:-false}" = "true" ]; then
             echo "::error::refusing to deploy version '$VERSION': on a dry run the version must be semver or the orchestrator's dry-run-<run-id> shape. Later steps substitute this value into defaults/main.yml, so arbitrary strings are not accepted."
