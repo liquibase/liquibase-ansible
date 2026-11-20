@@ -43,19 +43,17 @@ jobs:
     env:
       LIQUIBASE_VERSION: ${{ inputs.version }}
     steps:
-      - name: Configure AWS credentials for vault access
-        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+      - name: Get the GitHub App credentials from vault
+        uses: liquibase/build-logic/.github/actions/setup-aws-vault@2003fece51886ec69cda3df1cb4520b3ceeb2e0c # main
         with:
-          role-to-assume: ${{ secrets.LIQUIBASE_VAULT_OIDC_ROLE_ARN }}
-          aws-region: us-east-1
+          group: github-app-liquibase
+          role-arn: ${{ secrets.VAULT_GROUPED_GITHUB_APP_LIQUIBASE_ROLE_ARN }}
 
-      - name: Get secrets from vault
-        id: vault-secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@3a411b6ec5cace3d626412dd917e7bfeac242cfa # v3.0.0
+      - name: Get the Ansible Galaxy token from vault
+        uses: liquibase/build-logic/.github/actions/setup-aws-vault@2003fece51886ec69cda3df1cb4520b3ceeb2e0c # main
         with:
-          secret-ids: |
-            ,/vault/liquibase
-          parse-json-secrets: true
+          group: ansible
+          role-arn: ${{ secrets.VAULT_GROUPED_ANSIBLE_ROLE_ARN }}
 
       - name: Get GitHub App token
         id: get-token
